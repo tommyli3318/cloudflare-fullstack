@@ -13,15 +13,34 @@ async function handleRequest(request) {
   const respJson = await resp.json();
   const variantsArray = respJson.variants; // Contains two URLs
 
-  variantIndex = Math.floor(Math.random() * 2); // Choose 0 or 1
+  // Extra credit 2: Persisting variants
+  varientIndexString = getIndexStringFromCookieString(request.headers.get('cookie'));
+  // Use cookie index if it exists, or randomly assign 0 or 1
+  variantIndex = varientIndexString ? parseInt(varientIndexString) : Math.floor(Math.random() * 2);
   let response = await fetch(variantsArray[variantIndex]); // response.body is ReadableStream
 
+  // Extra credit 1: Changing copy/URLs
   newResponse = replaceHTML(response);
-  return new Response(newResponse.body); // Return the ReadableStream
+
+  // Return the ReadableStream
+  return new Response(
+    newResponse.body,
+    {headers: { 'Set-Cookie': `variantCookie=${variantIndex}` },}
+  );
 }
 
+
+function getIndexStringFromCookieString(cookieString) {
+  if (!cookieString)
+    return null
+
+  const regex = new RegExp('variantCookie=([01])');
+  let match = cookieString.match(regex);
+  return match ? match[1] : null // return 1st capturing group if cookie present
+}
+
+
 function replaceHTML(response) {
-  // Extra credit: Changing copy/URLs
   return new HTMLRewriter()
     .on('*', new ElementHandler())
     .transform(response);
